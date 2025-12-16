@@ -1,15 +1,16 @@
 import { Request, Response, NextFunction } from "express";
-import user from "../models/User";
+import User from "../models/User";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail";
+import { generateAcessToken } from "../utils/generateTokens";
 
 // SIGNUP
 const signup = async (req: Request, res: Response) => {
 
     try {
 
-        const findUser = await user.findOne({ email: req.body.email });
+        const findUser = await User.findOne({ email: req.body.email });
         if (findUser) {
             return res.status(400).json({ message: 'User already exists' });
         } else {
@@ -27,7 +28,7 @@ const signup = async (req: Request, res: Response) => {
             )
 
             // Create new user
-            const newUser = await user.create({
+            const newUser = await User.create({
                 email: req.body.email,
                 passwordHash: passwordHash,
                 name: req.body.name,
@@ -37,11 +38,71 @@ const signup = async (req: Request, res: Response) => {
         }
 
     } catch (error) {
-        console.log("error hhhhhhh", error);
+        console.log("error", error);
         res.status(500).json({ message: error });
 
     }
 
 }
 
-export { signup };
+
+const verifyEmail = async (req: Request, res: Response) => {
+
+    try {
+        const { token } = req.query;
+        const existUser = await User.findOne({
+            verificationToken: token as string,
+        });
+
+        if (!existUser) {
+            return res.status(400).json({
+                message: "Invalid or expired token",
+            });
+        }
+
+        existUser.isVerified = true;
+        existUser.verificationToken = undefined;
+
+        await existUser.save();
+
+        return res.status(200).json({
+            message: "Email verified successfully",
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+const login = async (req: Request, res: Response) => {
+
+    try {
+        const { email, password } = req.body;
+        const userfind = await User.findOne({
+            email: email
+        })
+
+        if (!userfind || userfind.isVerified === false) {
+            return res.status(400).json({ message: "Invalid credentials" });
+        }
+
+        const isMatch = await bcrypt.compare(password, userfind.passwordHash);
+
+        if (!isMatch) {
+            return res.status(400).json({ message: "Invalid Password" });
+        }
+        const token = generateAcessToken(userfind._id.toString());
+        res.json({
+            token
+            , message: "Login successful"
+        })
+    } catch (error) {
+        console.log("error", error);
+        res.status(500).json({ message: error });
+    }
+
+}
+
+export { signup, verifyEmail, login };
