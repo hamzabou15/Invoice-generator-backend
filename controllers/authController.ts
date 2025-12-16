@@ -105,4 +105,86 @@ const login = async (req: Request, res: Response) => {
 
 }
 
-export { signup, verifyEmail, login };
+
+const forgotPassword = async (req: Request, res: Response) => {
+
+    try {
+        const { email } = req.body
+        const findUser = await User.findOne({ email });
+
+        if (!findUser) return res.status(400).json({ message: "User not found" });
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        findUser.resetPasswordToken = resetToken;
+        findUser.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
+
+        await findUser.save();
+
+        // Send reset email
+        const resetLink = `${req.protocol}://${req.get("host")}/api/auth/reset-password?token=${resetToken}`;
+        await sendEmail(
+            email,
+            "Password Reset",
+            `<p>Please click the following link to reset your password:</p>
+            <a href="${resetLink}">${resetLink}</a>`
+        );
+
+
+    } catch (error) {
+        console.log("error", error);
+        res.status(500).json({ message: error });
+    }
+
+}
+
+
+const resetPassword = async (req: Request, res: Response) => {
+
+    try {
+        const { token } = req.query;
+        const { newPassword } = req.body;
+        const { newPasswordConfirm } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ message: "Token is required" });
+        }
+
+        const user = await User.findOne({
+            resetPasswordToken: token as string,
+            resetPasswordExpires: { $gt: new Date() },
+
+        })
+        if (!user) {
+            return res.status(400).json({ message: "Invalid or expired token" });
+        }
+
+        const isPasswordIdentical = await bcrypt.compare(newPassword, user.passwordHash);
+
+        if (isPasswordIdentical) {
+            return res.status(400).json({ message: "New password must be different from the old password" });
+        }
+
+        if (newPassword !== newPasswordConfirm) {
+            return res.status(400).json({ message: "Passwords do not match" });
+        }
+        const passwordHash = await bcrypt.hash(newPassword, 10);
+
+        user.passwordHash = passwordHash;
+        console.log("user", user);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+        res.status(200).json({ message: "Password reset successful" });
+
+
+    } catch (error) {
+
+        console.log("error", error);
+        res.status(500).json({ message: error });
+    }
+
+}
+
+export { signup, verifyEmail, login, forgotPassword, resetPassword };
