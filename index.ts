@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db';
 import authRoutes from './routes/authRoutes';
+import { errorHandler } from './middlewares/errorHandler';
 
 // Load env variables FIRST
 dotenv.config();
@@ -20,8 +21,9 @@ connectDB();
 // Routes
 app.use('/api/auth', authRoutes);
 
-// Error middleware (always last)
-// app.use(errorHandler);
+// Middleware global 
+app.use(errorHandler);
+
 
 // Port from env
 const PORT = process.env.PORT || 5000;
@@ -30,3 +32,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+

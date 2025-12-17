@@ -1,190 +1,70 @@
-import { Request, Response, NextFunction } from "express";
-import User from "../models/User";
-import bcrypt from "bcrypt";
-import crypto from "crypto";
-import sendEmail from "../utils/sendEmail";
+import { Request, Response } from "express";
 import { generateAcessToken } from "../utils/generateTokens";
+import { 
+  signupSchema, 
+  loginSchema, 
+  foergotPasswordSchema, 
+  resetPasswordSchema 
+} from "../validators/authValidator";
+import { 
+  createUser, 
+  authenticateUser, 
+  initiatePasswordReset, 
+  resetUserPassword, 
+  verifyUserEmail 
+} from "../services/authServices";
 
-// SIGNUP
-const signup = async (req: Request, res: Response) => {
+// ---------------- SIGNUP ----------------
+export const signup = async (req: Request, res: Response) => {
+  const parsed = signupSchema.parse(req.body); // Validation Zod
+  const newUser = await createUser(parsed.email, parsed.password, parsed.name);
 
-    try {
-
-        const findUser = await User.findOne({ email: req.body.email });
-        if (findUser) {
-            return res.status(400).json({ message: 'User already exists' });
-        } else {
-            const passwordHash = await bcrypt.hash(req.body.password, 10); // for hashing password
-            const verificationToken = crypto.randomBytes(32).toString("hex"); // creation token for email verification
-
-            // Send verification email
-            const verificationLink = `${req.protocol}://${req.get("host")}/api/auth/verify?token=${verificationToken}`;
-
-            await sendEmail(
-                req.body.email,
-                "Email Verification",
-                `<p>Please click the following link to verify your email:</p>
-                <a href="${verificationLink}">${verificationLink}</a>`
-            )
-
-            // Create new user
-            const newUser = await User.create({
-                email: req.body.email,
-                passwordHash: passwordHash,
-                name: req.body.name,
-                verificationToken: verificationToken,
-            });
-            return res.status(201).json({ message: 'User created successfully', userId: newUser._id });
-        }
-
-    } catch (error) {
-        console.log("error", error);
-        res.status(500).json({ message: error });
-
-    }
-
-}
-
-
-const verifyEmail = async (req: Request, res: Response) => {
-
-    try {
-        const { token } = req.query;
-        const existUser = await User.findOne({
-            verificationToken: token as string,
-        });
-
-        if (!existUser) {
-            return res.status(400).json({
-                message: "Invalid or expired token",
-            });
-        }
-
-        existUser.isVerified = true;
-        existUser.verificationToken = undefined;
-
-        await existUser.save();
-
-        return res.status(200).json({
-            message: "Email verified successfully",
-        });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Server error" });
-    }
+  res.status(201).json({
+    message: "User created successfully. Please verify your email.",
+    userId: newUser._id,
+  });
 };
 
+// ---------------- VERIFY EMAIL ----------------
+export const verifyEmail = async (req: Request, res: Response) => {
+  const { token } = req.query;
+  if (!token) throw new Error("Token is required");
 
-const login = async (req: Request, res: Response) => {
+  const user = await verifyUserEmail(token as string);
 
-    try {
-        const { email, password } = req.body;
-        const userfind = await User.findOne({
-            email: email
-        })
+  res.status(200).json({
+    message: "Email verified successfully",
+    userId: user._id,
+  });
+};
 
-        if (!userfind || userfind.isVerified === false) {
-            return res.status(400).json({ message: "Invalid credentials" });
-        }
+// ---------------- LOGIN ----------------
+export const login = async (req: Request, res: Response) => {
+  const parsed = loginSchema.parse(req.body);
+  const user = await authenticateUser(parsed.email, parsed.password);
 
-        const isMatch = await bcrypt.compare(password, userfind.passwordHash);
+  const token = generateAcessToken(user._id.toString());
+  res.status(200).json({
+    token,
+    message: "Login successful",
+  });
+};
 
-        if (!isMatch) {
-            return res.status(400).json({ message: "Invalid Password" });
-        }
-        const token = generateAcessToken(userfind._id.toString());
-        res.json({
-            token
-            , message: "Login successful"
-        })
-    } catch (error) {
-        console.log("error", error);
-        res.status(500).json({ message: error });
-    }
+// ---------------- FORGOT PASSWORD ----------------
+export const forgotPassword = async (req: Request, res: Response) => {
+  const parsed = foergotPasswordSchema.parse(req.body);
+  await initiatePasswordReset(parsed.email);
 
-}
+  res.status(200).json({ message: "Password reset email sent" });
+};
 
+// ---------------- RESET PASSWORD ----------------
+export const resetPassword = async (req: Request, res: Response) => {
+  const { token } = req.query;
+  if (!token) throw new Error("Token is required");
 
-const forgotPassword = async (req: Request, res: Response) => {
+  const parsed = resetPasswordSchema.parse(req.body);
+  await resetUserPassword(token as string, parsed.newPassword, parsed.newPasswordConfirm);
 
-    try {
-        const { email } = req.body
-        const findUser = await User.findOne({ email });
-
-        if (!findUser) return res.status(400).json({ message: "User not found" });
-
-        // Generate reset token
-        const resetToken = crypto.randomBytes(32).toString("hex");
-        findUser.resetPasswordToken = resetToken;
-        findUser.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
-
-        await findUser.save();
-
-        // Send reset email
-        const resetLink = `${req.protocol}://${req.get("host")}/api/auth/reset-password?token=${resetToken}`;
-        await sendEmail(
-            email,
-            "Password Reset",
-            `<p>Please click the following link to reset your password:</p>
-            <a href="${resetLink}">${resetLink}</a>`
-        );
-
-
-    } catch (error) {
-        console.log("error", error);
-        res.status(500).json({ message: error });
-    }
-
-}
-
-
-const resetPassword = async (req: Request, res: Response) => {
-
-    try {
-        const { token } = req.query;
-        const { newPassword } = req.body;
-        const { newPasswordConfirm } = req.body;
-
-        if (!token) {
-            return res.status(400).json({ message: "Token is required" });
-        }
-
-        const user = await User.findOne({
-            resetPasswordToken: token as string,
-            resetPasswordExpires: { $gt: new Date() },
-
-        })
-        if (!user) {
-            return res.status(400).json({ message: "Invalid or expired token" });
-        }
-
-        const isPasswordIdentical = await bcrypt.compare(newPassword, user.passwordHash);
-
-        if (isPasswordIdentical) {
-            return res.status(400).json({ message: "New password must be different from the old password" });
-        }
-
-        if (newPassword !== newPasswordConfirm) {
-            return res.status(400).json({ message: "Passwords do not match" });
-        }
-        const passwordHash = await bcrypt.hash(newPassword, 10);
-
-        user.passwordHash = passwordHash;
-        console.log("user", user);
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpires = undefined;
-
-        await user.save();
-        res.status(200).json({ message: "Password reset successful" });
-
-
-    } catch (error) {
-
-        console.log("error", error);
-        res.status(500).json({ message: error });
-    }
-
-}
-
-export { signup, verifyEmail, login, forgotPassword, resetPassword };
+  res.status(200).json({ message: "Password has been reset successfully" });
+};

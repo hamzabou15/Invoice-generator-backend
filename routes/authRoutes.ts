@@ -1,14 +1,15 @@
 import express from 'express';
 import { verifyEmail, signup, login, forgotPassword, resetPassword } from '../controllers/authController';
+import { asyncHandler } from '../middlewares/asyncHandler';
 
 const router = express.Router();
 
 
-router.post('/signup', signup);
-router.get('/verify', verifyEmail);
-router.post('/login', login);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+router.post('/signup', asyncHandler(signup));
+router.get('/verify', asyncHandler(verifyEmail));
+router.post('/login', asyncHandler(login));
+router.post('/forgot-password', asyncHandler(forgotPassword));
+router.post('/reset-password', asyncHandler(resetPassword));
 
 
 
