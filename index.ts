@@ -24,6 +24,7 @@ app.use('/api/auth', authRoutes);
 // Middleware global 
 app.use(errorHandler);
 
+app.use(cors({ origin: 'http://localhost:3000' }));
 
 // Port from env
 const PORT = process.env.PORT || 5000;
