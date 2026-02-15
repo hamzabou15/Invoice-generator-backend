@@ -13,7 +13,7 @@ export const createUser = async (email: string, password: string, name?: string)
         email: email
     })
 
-    if (existUser) throw new Error('User already exists');
+    if (existUser) throw new Error("L'utilisateur existe déjà");
     const passwordHash = await bcrypt.hash(password, 10); // for hashing password
 
     const verificationToken = crypto.randomBytes(32).toString("hex"); // creation token for email verification
@@ -54,6 +54,31 @@ export const verifyUserEmail = async (token: string) => {
 
     return user;
 }
+
+// logique metier pour renvoyer l'email de verification
+export const resendVerificationEmail = async (email: string) => {
+    const user = await User.findOne({ email });
+
+    if (!user) throw new Error("User not found");
+    if (user.isVerified) throw new Error("Email already verified");
+
+    // Crée un nouveau token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    user.verificationToken = verificationToken;
+    await user.save();
+
+    const verificationLink = `${process.env.BACKEND_URL}/api/auth/verify?token=${verificationToken}`;
+
+    await sendEmail(
+        email,
+        "Email Verification",
+        `<p>Veuillez cliquer sur le lien pour vérifier votre e-mail :</p>
+         <a href="${verificationLink}">${verificationLink}</a>`
+    );
+
+    return { message: "Email de vérification renvoyé avec succès" };
+}
+
 
 // logique metier pour le login (pas de response ici, juste la logique)
 export const authenticateUser = async (email: string, password: string) => {

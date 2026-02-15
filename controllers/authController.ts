@@ -11,7 +11,8 @@ import {
   authenticateUser, 
   initiatePasswordReset, 
   resetUserPassword, 
-  verifyUserEmail 
+  verifyUserEmail, 
+  resendVerificationEmail
 } from "../services/authServices";
 
 // ---------------- SIGNUP ----------------
@@ -36,6 +37,16 @@ export const verifyEmail = async (req: Request, res: Response) => {
     message: "Email verified successfully",
     userId: user._id,
   });
+};
+
+// ---------------- RESEND VERIFICATION EMAIL ----------------
+export const resendVerificationController = async (req: Request, res: Response) => {
+    const { email } = req.body;
+    if (!email) throw new Error("Email is required");
+
+    const result = await resendVerificationEmail(email);
+
+    res.status(200).json(result);
 };
 
 // ---------------- LOGIN ----------------

@@ -21,6 +21,7 @@ connectDB();
 // Routes
 app.use('/api/auth', authRoutes);
 
+
 // Middleware global 
 app.use(errorHandler);
 
