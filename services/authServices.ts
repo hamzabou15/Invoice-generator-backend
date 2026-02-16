@@ -87,13 +87,13 @@ export const authenticateUser = async (email: string, password: string) => {
         email: email
     })
 
-    if (!user) throw new Error("Invalid email or password");
+    if (!user) throw new Error("Adresse e-mail ou mot de passe invalide");
 
     const hashpassword = user.passwordHash;
 
     const isMatch = await bcrypt.compare(password, hashpassword);
 
-    if (!isMatch) throw new Error("Invalid email or password");
+    if (!isMatch) throw new Error("Adresse e-mail ou mot de passe invalide");
     return user;
 
 }
