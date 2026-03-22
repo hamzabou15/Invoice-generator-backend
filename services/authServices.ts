@@ -1,6 +1,5 @@
 
 // Logique métier (hash, DB, emails, tokens…
-
 import User from "../models/User"
 import bcrypt from "bcrypt";
 import crypto from "crypto";
@@ -102,7 +101,7 @@ export const authenticateUser = async (email: string, password: string) => {
 export const initiatePasswordReset = async (email: string) => {
 
     const user = await User.findOne({
-        email: email
+        email: { $regex: `^${email}$`, $options: "i" }
     })
 
     if (!user) throw new Error("User with this email does not exist");
@@ -112,38 +111,69 @@ export const initiatePasswordReset = async (email: string) => {
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 heure
     await user.save();
-    const resetLink = `${process.env.BACKEND_URL}/api/auth/reset-password?token=${resetToken}`;
-    sendEmail(
+
+    const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
+
+    await sendEmail(
         email,
         "Password Reset",
-        `<p>Please click the following link to reset your password:</p>
-        <a href="${resetLink}">${resetLink}</a>`
+        `<p>Veuillez cliquer sur le lien pour réinitialiser votre mot de passe :</p>
+        <a href="${resetLink}">Réinitialiser mon mot de passe</a>`
     );
-    return user;
 
+    return user;
 }
 
-// logique metier pour le reset password (pas de response ici, juste la logique)
-export const resetUserPassword = async (token:string , newPassword:string, newPasswordConfirm:string) => {
-    const user = await User.findOne({
-        resetPasswordToken: token,
-        resetPasswordExpires: { $gt: new Date() }, // la date d'expiration doit être dans le futur
-    })
+// logique metier pour renvoyer l'email de verification
+export const resendVerificationEmailReset = async (email: string) => {
+    const user = await User.findOne({ email: email });
 
-    if(!user) throw new Error("Invalid or expired token");
+    if (!user) throw new Error("User not found");
+
+    // Crée un nouveau token pour reset password
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1h
+    await user.save();
+
+    // Lien qui va vers le frontend Next.js
+    const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
+
+    await sendEmail(
+        email,
+        "Réinitialisation de mot de passe",
+        `<p>Veuillez cliquer sur le lien pour réinitialiser votre mot de passe :</p>
+        <a href="${resetLink}">Réinitialiser mon mot de passe</a>`
+    );
+
+    return { message: "Email de réinitialisation envoyé avec succès" };
+};
+// logique metier pour le reset password (pas de response ici, juste la logique)
+export const resetUserPassword = async (token: string, newPassword: string, newPasswordConfirm: string) => {
+    if (!token) throw new Error("Token is required");
+
+    if (newPassword !== newPasswordConfirm) throw new Error("Passwords do not match");
+
+    // trim() pour éviter les espaces
+    const cleanToken = token.trim();
+
+    const user = await User.findOne({
+        resetPasswordToken: cleanToken,
+        resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!user) throw new Error("Invalid or expired token");
 
     const isPasswordIdentical = await bcrypt.compare(newPassword, user.passwordHash);
-
-    if(isPasswordIdentical) throw new Error("New password must be different from the old password");
-
-    if(newPassword !== newPasswordConfirm) throw new Error("Passwords do not match");
+    if (isPasswordIdentical) throw new Error("Le nouveau mot de passe doit être différent de l'ancien.");
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
     user.passwordHash = passwordHash;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
+
     await user.save();
 
-    return user;
-}
+    return { message: "Password reset successful" };
+};

@@ -7,6 +7,7 @@ interface IUser extends mongoose.Document {
     isVerified: boolean;
     verificationToken?: string;
     resetPasswordToken?: string;
+    verificationResetToken?: string;
     resetPasswordExpires?: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -21,6 +22,7 @@ const userSchema = new mongoose.Schema<IUser>(
         isVerified: { type: Boolean, default: false },
         verificationToken: { type: String },
         resetPasswordToken: { type: String },
+        verificationResetToken: { type: String },
         resetPasswordExpires: { type: Date },
         createdAt: { type: Date, default: Date.now },
     }
