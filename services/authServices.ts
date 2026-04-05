@@ -8,28 +8,29 @@ import sendEmail from "../utils/sendEmail";
 // logic metier pour l'inscription (pas de response ici, juste la logique)
 export const createUser = async (email: string, password: string, name?: string) => {
 
-    const existUser = await User.findOne({
-        email: email
-    })
+  const existUser = await User.findOne({
+    email: email
+  })
 
-    if (existUser) throw new Error("L'utilisateur existe déjà");
-    const passwordHash = await bcrypt.hash(password, 10); // for hashing password
+  if (existUser) throw new Error("L'utilisateur existe déjà");
+  const passwordHash = await bcrypt.hash(password, 10); // for hashing password
 
-    const verificationToken = crypto.randomBytes(32).toString("hex"); // creation token for email verification
+  const verificationToken = crypto.randomBytes(32).toString("hex"); // creation token for email verification
 
-    const newUser = await User.create({
-        email: email,
-        passwordHash: passwordHash,
-        name: name,
-        verificationToken: verificationToken,
-    })
+  const newUser = await User.create({
+    email: email,
+    passwordHash: passwordHash,
+    name: name,
+    verificationToken: verificationToken,
+    verificationTokenExpires: new Date(Date.now() + 600000), // 1 heure
+  })
 
-    const verificationLink = `${process.env.BACKEND_URL}/api/auth/verify?token=${verificationToken}`;
+  const verificationLink = `${process.env.BACKEND_URL}/api/auth/verify?token=${verificationToken}`;
 
-    await sendEmail(
-        email,
-        "Vérifiez votre adresse email - Facturuo",
-        `
+  await sendEmail(
+    email,
+    "Vérifiez votre adresse email - Facturuo",
+    `
   <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px 0;">
     <table align="center" width="100%" style="max-width: 600px; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
       
@@ -96,47 +97,50 @@ export const createUser = async (email: string, password: string, name?: string)
     </table>
   </div>
   `
-    );
+  );
 
-    return newUser;
+  return newUser;
 
 }
 
 // logic metier pour la verification de l'email (pas de response ici, juste la logique)
 export const verifyUserEmail = async (token: string) => {
 
-    const user = await User.findOne({
-        verificationToken: token,
-    })
+  const user = await User.findOne({
+    verificationToken: token,
+  })
 
-    if (!user) {
-        throw new Error("Invalid or expired token");
-    }
-    user.isVerified = true;
-    user.verificationToken = undefined;
-    await user.save();
+  if (!user) {
+    throw new Error("Invalid or expired token");
+  }
+  user.isVerified = true;
 
-    return user;
+  user.verificationToken = undefined;
+  await user.save();
+
+  return user;
 }
 
 // logique metier pour renvoyer l'email de verification
 export const resendVerificationEmail = async (email: string) => {
-    const user = await User.findOne({ email });
+  const user = await User.findOne({ email });
 
-    if (!user) throw new Error("User not found");
-    if (user.isVerified) throw new Error("Email already verified");
+  if (!user) throw new Error("User not found");
+  if (user.isVerified) throw new Error("Email already verified");
 
-    // Crée un nouveau token
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    user.verificationToken = verificationToken;
-    await user.save();
+  // Crée un nouveau token
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  user.verificationToken = verificationToken;
+  user.verificationTokenExpires = new Date(Date.now() + 600000); // 1 heure
 
-    const verificationLink = `${process.env.BACKEND_URL}/api/auth/verify?token=${verificationToken}`;
+  await user.save();
 
-    await sendEmail(
-        email,
-        "Vérifiez votre adresse email - Facturuo",
-        `
+  const verificationLink = `${process.env.BACKEND_URL}/api/auth/verify?token=${verificationToken}`;
+
+  await sendEmail(
+    email,
+    "Vérifiez votre adresse email - Facturuo",
+    `
   <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px 0;">
     <table align="center" width="100%" style="max-width: 600px; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
       
@@ -203,51 +207,51 @@ export const resendVerificationEmail = async (email: string) => {
     </table>
   </div>
   `
-    );
+  );
 
-    return { message: "Email de vérification renvoyé avec succès" };
+  return { message: "Email de vérification renvoyé avec succès" };
 }
 
 
 // logique metier pour le login (pas de response ici, juste la logique)
 export const authenticateUser = async (email: string, password: string) => {
 
-    const user = await User.findOne({
-        email: email
-    })
+  const user = await User.findOne({
+    email: email
+  })
 
-    if (!user) throw new Error("Adresse e-mail ou mot de passe invalide");
+  if (!user) throw new Error("Adresse e-mail ou mot de passe invalide");
 
-    const hashpassword = user.passwordHash;
+  const hashpassword = user.passwordHash;
 
-    const isMatch = await bcrypt.compare(password, hashpassword);
+  const isMatch = await bcrypt.compare(password, hashpassword);
 
-    if (!isMatch) throw new Error("Adresse e-mail ou mot de passe invalide");
-    return user;
+  if (!isMatch) throw new Error("Adresse e-mail ou mot de passe invalide");
+  return user;
 
 }
 
 // logique metier pour le forgot password (pas de response ici, juste la logique)
 export const initiatePasswordReset = async (email: string) => {
 
-    const user = await User.findOne({
-        email: { $regex: `^${email}$`, $options: "i" }
-    })
+  const user = await User.findOne({
+    email: { $regex: `^${email}$`, $options: "i" }
+  })
 
-    if (!user) throw new Error("User with this email does not exist");
+  if (!user) throw new Error("User with this email does not exist");
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
+  const resetToken = crypto.randomBytes(32).toString("hex");
 
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 heure
-    await user.save();
+  user.resetPasswordToken = resetToken;
+  user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 heure
+  await user.save();
 
-    const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
+  const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
 
-    await sendEmail(
-        email,
-        "Réinitialisation de votre mot de passe - Facturuo",
-        `
+  await sendEmail(
+    email,
+    "Réinitialisation de votre mot de passe - Facturuo",
+    `
   <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px 0;">
     <table align="center" width="100%" style="max-width: 600px; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
       
@@ -310,60 +314,72 @@ export const initiatePasswordReset = async (email: string) => {
     </table>
   </div>
   `
-    );
-    return user;
+  );
+  return user;
 }
 
 // logique metier pour renvoyer l'email de verification
 export const resendVerificationEmailReset = async (email: string) => {
-    const user = await User.findOne({ email: email });
+  const user = await User.findOne({ email: email });
 
-    if (!user) throw new Error("User not found");
+  if (!user) throw new Error("User not found");
 
-    // Crée un nouveau token pour reset password
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1h
-    await user.save();
+  // Crée un nouveau token pour reset password
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  user.resetPasswordToken = resetToken;
+  user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1h
+  await user.save();
 
-    // Lien qui va vers le frontend Next.js
-    const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
+  // Lien qui va vers le frontend Next.js
+  const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
 
-    await sendEmail(
-        email,
-        "Réinitialisation de mot de passe",
-        `<p>Veuillez cliquer sur le lien pour réinitialiser votre mot de passe :</p>
+  await sendEmail(
+    email,
+    "Réinitialisation de mot de passe",
+    `<p>Veuillez cliquer sur le lien pour réinitialiser votre mot de passe :</p>
         <a href="${resetLink}">Réinitialiser mon mot de passe</a>`
-    );
+  );
 
-    return { message: "Email de réinitialisation envoyé avec succès" };
+  return { message: "Email de réinitialisation envoyé avec succès" };
 };
 // logique metier pour le reset password (pas de response ici, juste la logique)
 export const resetUserPassword = async (token: string, newPassword: string, newPasswordConfirm: string) => {
-    if (!token) throw new Error("Token is required");
+  if (!token) throw new Error("Token is required");
 
-    if (newPassword !== newPasswordConfirm) throw new Error("Passwords do not match");
+  if (newPassword !== newPasswordConfirm) throw new Error("Passwords do not match");
 
-    // trim() pour éviter les espaces
-    const cleanToken = token.trim();
+  // trim() pour éviter les espaces
+  const cleanToken = token.trim();
 
-    const user = await User.findOne({
-        resetPasswordToken: cleanToken,
-        resetPasswordExpires: { $gt: new Date() },
-    });
+  const user = await User.findOne({
+    resetPasswordToken: cleanToken,
+    resetPasswordExpires: { $gt: new Date() },
+  });
 
-    if (!user) throw new Error("Invalid or expired token");
+  if (!user) throw new Error("Invalid or expired token");
 
-    const isPasswordIdentical = await bcrypt.compare(newPassword, user.passwordHash);
-    if (isPasswordIdentical) throw new Error("Le nouveau mot de passe doit être différent de l'ancien.");
+  const isPasswordIdentical = await bcrypt.compare(newPassword, user.passwordHash);
+  if (isPasswordIdentical) throw new Error("Le nouveau mot de passe doit être différent de l'ancien.");
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+  const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    user.passwordHash = passwordHash;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+  user.passwordHash = passwordHash;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
 
-    await user.save();
+  await user.save();
 
-    return { message: "Password reset successful" };
+  return { message: "Password reset successful" };
 };
+
+export const getUserByEmailService = async (email: string) => {
+
+  try {
+    const user = await User.findOne({ email: email });
+    if (!user) throw new Error("User not found");
+    return user;
+
+  } catch (error) {
+    throw new Error("Erreur lors de la récupération de l'utilisateur par e-mail");
+  }
+}
