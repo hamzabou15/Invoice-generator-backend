@@ -4,6 +4,7 @@ import User from "../models/User"
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail";
+import Business, { CreateBusinessDTO } from "../models/Business";
 
 // logic metier pour l'inscription (pas de response ici, juste la logique)
 export const createUser = async (email: string, password: string, name?: string) => {
@@ -111,7 +112,7 @@ export const verifyUserEmail = async (token: string) => {
   })
 
   if (!user) {
-    throw new Error("Invalid or expired token");
+    throw new Error("Lien invalide ou expiré");
   }
   user.isVerified = true;
 
@@ -216,8 +217,10 @@ export const resendVerificationEmail = async (email: string) => {
 // logique metier pour le login (pas de response ici, juste la logique)
 export const authenticateUser = async (email: string, password: string) => {
 
+  const normalizedEmail = email.toLowerCase().trim();
+
   const user = await User.findOne({
-    email: email
+    email: normalizedEmail
   })
 
   if (!user) throw new Error("Adresse e-mail ou mot de passe invalide");
@@ -356,7 +359,7 @@ export const resetUserPassword = async (token: string, newPassword: string, newP
     resetPasswordExpires: { $gt: new Date() },
   });
 
-  if (!user) throw new Error("Invalid or expired token");
+  if (!user) throw new Error("Lien invalide ou expiré");
 
   const isPasswordIdentical = await bcrypt.compare(newPassword, user.passwordHash);
   if (isPasswordIdentical) throw new Error("Le nouveau mot de passe doit être différent de l'ancien.");
@@ -383,3 +386,17 @@ export const getUserByEmailService = async (email: string) => {
     throw new Error("Erreur lors de la récupération de l'utilisateur par e-mail");
   }
 }
+
+
+export const createBusinessService = async (data: CreateBusinessDTO) => {
+
+  const existing = await Business.findOne({ user: data.user });
+
+  if (existing) {
+    throw new Error("Un compte business existe déjà pour cet utilisateur.");
+  }
+
+  const business = await Business.create(data);
+
+  return business;
+};

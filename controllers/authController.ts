@@ -4,7 +4,8 @@ import {
   signupSchema,
   loginSchema,
   foergotPasswordSchema,
-  resetPasswordSchema
+  resetPasswordSchema,
+  businessSchema
 } from "../validators/authValidator";
 import {
   createUser,
@@ -14,8 +15,10 @@ import {
   verifyUserEmail,
   resendVerificationEmail,
   resendVerificationEmailReset,
-  getUserByEmailService
+  getUserByEmailService,
+  createBusinessService
 } from "../services/authServices";
+import Business from "../models/Business";
 
 // ---------------- SIGNUP ----------------
 export const signup = async (req: Request, res: Response) => {
@@ -63,6 +66,13 @@ export const login = async (req: Request, res: Response) => {
   const user = await authenticateUser(parsed.email, parsed.password);
 
   const token = generateAcessToken(user._id.toString());
+
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: false, // only back end dev
+    sameSite: "lax",
+  });
+
   res.status(200).json({
     token,
     message: "Login successful",
@@ -106,5 +116,37 @@ export const resetPassword = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error(error);
     res.status(400).json({ message: error.message || "An error occurred" });
+  }
+};
+
+// ------------ Business USER ----------------
+
+//  le flow logique ( au moment du login on envoie au cookies le token (via le back end))
+// par la suite le authMidlleware reacuprer le token et retrive le user pour utiliser le ID
+
+export const createBusinessController = async (req: any, res: any) => {
+  try {
+    // on recuper le user via le token a travers le autMiddlware
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "User not authenticated",
+      });
+    }
+
+    const business = await createBusinessService({
+      ...req.body,  // tout le reste du data
+      user: userId, // le ID du user
+    });
+
+    return res.status(201).json({
+      message: "Business created successfully",
+      data: business,
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      message: error.message,
+    });
   }
 };

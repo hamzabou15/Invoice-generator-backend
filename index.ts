@@ -1,38 +1,36 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import connectDB from './config/db';
-import authRoutes from './routes/authRoutes';
-import { errorHandler } from './middlewares/errorHandler';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import connectDB from "./config/db";
+import authRoutes from "./routes/authRoutes";
+import { errorHandler } from "./middlewares/errorHandler";
+import cookieParser from "cookie-parser";
 
-// Load env variables FIRST
 dotenv.config();
 
-// Create app
 const app = express();
+app.use(cookieParser());
 
-// Middleware
-app.use(cors());
+// 🔥 CORS DOIT ÊTRE EN PREMIER
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// Connect DB
 connectDB();
 
-// Routes
-app.use('/api/auth', authRoutes);
+// routes
+app.use("/api/auth", authRoutes);
 
-
-// Middleware global 
+// error handler
 app.use(errorHandler);
 
-app.use(cors({ origin: 'http://localhost:3000' }));
-
-// Port from env
 const PORT = process.env.PORT || 5000;
 
-// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-
-
