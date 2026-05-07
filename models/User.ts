@@ -10,6 +10,7 @@ interface IUser extends mongoose.Document {
     resetPasswordToken?: string; // token utilisé pour la réinitialisation du mot de passe
     verificationResetToken?: string; // token utilisé pour la réinitialisation de la vérification de l'email
     resetPasswordExpires?: Date; // date d'expiration du token de réinitialisation du mot de passe
+    numberPhone?: string;
     /**** Onboarding *****/
     hasCompletedOnboarding: boolean; // indique si l'utilisateur a complété l'onboarding (Bussines)
     createdAt: Date;
@@ -17,21 +18,24 @@ interface IUser extends mongoose.Document {
 }
 
 
-const userSchema = new mongoose.Schema<IUser>({
-    email: { type: String, required: true, unique: true },
-    passwordHash: { type: String, required: true },
-    name: { type: String },
-    isVerified: { type: Boolean, default: false },
+const userSchema = new mongoose.Schema<IUser>(
+    {
+        email: { type: String, required: true, unique: true },
+        passwordHash: { type: String, required: true },
+        name: { type: String },
+        isVerified: { type: Boolean, default: false },
+        numberPhone: { type: String },
+        verificationToken: { type: String },
+        verificationTokenExpires: { type: Date },
 
-    verificationToken: { type: String },
-    verificationTokenExpires: { type: Date }, // dae d'expiration du token de vérification de l'email
+        resetPasswordToken: { type: String },
+        verificationResetToken: { type: String },
+        resetPasswordExpires: { type: Date },
 
-    resetPasswordToken: { type: String },
-    verificationResetToken: { type: String },
-    resetPasswordExpires: { type: Date },
-
-    createdAt: { type: Date, default: Date.now },
-})
+        hasCompletedOnboarding: { type: Boolean, default: false },
+    },
+    { timestamps: true } //  ça gère createdAt + updatedAt automatiquement
+);
 
 const User = mongoose.model<IUser>('User', userSchema);
 

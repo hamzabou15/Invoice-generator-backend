@@ -1,20 +1,32 @@
 import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 
-// midlle ware pour recuprer le token (et decter le id email .... du user)
-export const authMiddleware = (req: any, res: any, next: any) => {
-    try {
-        const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+interface JwtPayload {
+  id: string;
+  email?: string;
+}
 
-        if (!token) {
-            return res.status(401).json({ message: "No token" });
-        }
+export const authMiddleware = (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = req.cookies.token;
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!);
-
-        req.user = decoded;
-
-        next();
-    } catch (err) {
-        return res.status(401).json({ message: "Invalid token" });
+    if (!token) {
+      return res.status(401).json({ message: "No token" });
     }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET!
+    ) as JwtPayload;
+
+    req.user = decoded;
+
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
 };

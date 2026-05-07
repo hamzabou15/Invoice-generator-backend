@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail";
 import Business, { CreateBusinessDTO } from "../models/Business";
+import mongoose from "mongoose";
 
 // logic metier pour l'inscription (pas de response ici, juste la logique)
 export const createUser = async (email: string, password: string, name?: string) => {
@@ -400,3 +401,77 @@ export const createBusinessService = async (data: CreateBusinessDTO) => {
 
   return business;
 };
+
+// service to get the user 
+export const getMeService = async (userId: string) => {
+  const user = await User.findById(userId)
+    .select("name email numberPhone")
+    .lean();
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return user;
+};
+
+export const getBusinessByUserService =
+  async (userId: string) => {
+
+    const business = await Business.findOne({
+      user: new mongoose.Types.ObjectId(userId),
+    });
+
+    if (!business) {
+      throw new Error("Business not found")
+    }
+
+    return business;
+  }
+
+// update user infos servi?
+// ce 
+interface UpdateUserInformationsParams {
+  userId: string
+  email?: string
+  name?: string
+  numberPhone?: string
+}
+
+export const updateUserInformationsService =
+  async ({
+    userId,
+    email,
+    name,
+    numberPhone,
+  }: UpdateUserInformationsParams) => {
+
+    const updateData: any = {}
+
+    if (email) {
+      updateData.email = email
+    }
+
+    if (name) {
+      updateData.name = name
+    }
+
+    if (numberPhone) {
+      updateData.numberPhone = numberPhone
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      {
+        new: true,
+        runValidators: true,
+      }
+    )
+
+    if (!user) {
+      throw new Error("Utilisateur introuvable")
+    }
+
+    return user
+  }

@@ -62,3 +62,4 @@ export const businessSchema = z.object({
     // currency: z.string().min(1, "Devise requise"),
     createdAt: z.date().optional(),
 });
+

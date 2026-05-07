@@ -16,9 +16,14 @@ import {
   resendVerificationEmail,
   resendVerificationEmailReset,
   getUserByEmailService,
-  createBusinessService
+  createBusinessService,
+  getMeService,
+  getBusinessByUserService,
+  updateUserInformationsService
 } from "../services/authServices";
 import Business from "../models/Business";
+import User from "../models/User";
+import { updateUserSchema } from "../validators/userValidator";
 
 // ---------------- SIGNUP ----------------
 export const signup = async (req: Request, res: Response) => {
@@ -140,12 +145,84 @@ export const createBusinessController = async (req: any, res: any) => {
       user: userId, // le ID du user
     });
 
+    const getUser = await User.findById(userId)
+
+    if (getUser) {
+      getUser.hasCompletedOnboarding = true;
+      await getUser.save();
+    }
+
     return res.status(201).json({
       message: "Business created successfully",
       data: business,
     });
   } catch (error: any) {
     return res.status(400).json({
+      message: error.message,
+    });
+  }
+};
+
+// get the user 
+export const getMe = async (req: any, res: any) => {
+  try {
+    // communication with DB
+    const user = await getMeService(req.user.id);
+    return res.status(200).json(user);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// get Busines
+
+export const getBusinessByUserController = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const business = await getBusinessByUserService(userId);
+
+    return res.status(200).json(business);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// update user informations 
+
+export const updateUserInformationsController = async (req: any, res: Response) => {
+  try {
+
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Non autorisé",
+      });
+    }
+
+    const validatedData = updateUserSchema.parse(req.body); // validator with zod
+
+    const updatedUser =
+      await updateUserInformationsService(
+        {
+          userId,
+          ...validatedData
+        }
+      );
+
+    return res.status(200).json({
+      message: "Profil mis à jour",
+      user: updatedUser,
+    });
+
+  } catch (error: any) {
+
+    return res.status(500).json({
       message: error.message,
     });
   }

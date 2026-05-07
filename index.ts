@@ -14,7 +14,7 @@ app.use(cookieParser());
 // 🔥 CORS DOIT ÊTRE EN PREMIER
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "http://10.32.13.128:3000",
     credentials: true,
   })
 );
