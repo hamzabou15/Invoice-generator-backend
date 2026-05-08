@@ -11,6 +11,7 @@ interface IUser extends mongoose.Document {
     verificationResetToken?: string; // token utilisé pour la réinitialisation de la vérification de l'email
     resetPasswordExpires?: Date; // date d'expiration du token de réinitialisation du mot de passe
     numberPhone?: string;
+    job?:string;
     /**** Onboarding *****/
     hasCompletedOnboarding: boolean; // indique si l'utilisateur a complété l'onboarding (Bussines)
     createdAt: Date;
@@ -27,7 +28,7 @@ const userSchema = new mongoose.Schema<IUser>(
         numberPhone: { type: String },
         verificationToken: { type: String },
         verificationTokenExpires: { type: Date },
-
+        job: {type:String},
         resetPasswordToken: { type: String },
         verificationResetToken: { type: String },
         resetPasswordExpires: { type: Date },

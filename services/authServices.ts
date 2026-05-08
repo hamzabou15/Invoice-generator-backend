@@ -405,7 +405,7 @@ export const createBusinessService = async (data: CreateBusinessDTO) => {
 // service to get the user 
 export const getMeService = async (userId: string) => {
   const user = await User.findById(userId)
-    .select("name email numberPhone")
+    .select("name email numberPhone job")
     .lean();
 
   if (!user) {
@@ -436,6 +436,7 @@ interface UpdateUserInformationsParams {
   email?: string
   name?: string
   numberPhone?: string
+  job?:string
 }
 
 export const updateUserInformationsService =
@@ -444,6 +445,7 @@ export const updateUserInformationsService =
     email,
     name,
     numberPhone,
+    job
   }: UpdateUserInformationsParams) => {
 
     const updateData: any = {}
@@ -458,6 +460,9 @@ export const updateUserInformationsService =
 
     if (numberPhone) {
       updateData.numberPhone = numberPhone
+    }
+    if(job) {
+      updateData.job = job
     }
 
     const user = await User.findByIdAndUpdate(

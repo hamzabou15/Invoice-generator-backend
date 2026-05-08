@@ -15,4 +15,30 @@ export const updateUserSchema = z.object({
         .string()
         .min(8, "Numéro invalide")
         .optional(),
+    job: z.enum([
+        "plombier",
+        "électricien",
+        "maçon",
+        "peintre en bâtiment",
+        "carreleur",
+        "plâtrier",
+        "menuisier",
+        "charpentier",
+        "couvreur",
+        "serrurier",
+        "vitrier",
+        "chauffagiste",
+        "mécanicien",
+        "carrossier",
+        "garagiste",
+        "boulanger",
+        "pâtissier",
+        "boucher",
+        "coiffeur",
+        "barbier",
+        "esthéticienne",
+        "couturier",
+        "ébéniste",
+        "autre"
+    ]).optional(),
 });
