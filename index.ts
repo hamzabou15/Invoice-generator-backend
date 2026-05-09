@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
 import authRoutes from "./routes/authRoutes";
+import onboardingRoutes from "./routes/onboardingRoutes";
+
 import { errorHandler } from "./middlewares/errorHandler";
 import cookieParser from "cookie-parser";
 
@@ -25,6 +27,8 @@ connectDB();
 
 // routes
 app.use("/api/auth", authRoutes);
+app.use("/api/onboarding", onboardingRoutes);
+
 
 // error handler
 app.use(errorHandler);

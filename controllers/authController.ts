@@ -26,14 +26,57 @@ import User from "../models/User";
 import { updateUserSchema } from "../validators/userValidator";
 
 // ---------------- SIGNUP ----------------
-export const signup = async (req: Request, res: Response) => {
-  const parsed = signupSchema.parse(req.body); // Validation Zod
-  const newUser = await createUser(parsed.email, parsed.password, parsed.name);
+export const signup = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    // validation zod
+    const parsed =
+      signupSchema.parse(req.body);
 
-  res.status(201).json({
-    message: "User created successfully. Please verify your email.",
-    userId: newUser._id,
-  });
+    // création user
+    const newUser =
+      await createUser(
+        parsed.email,
+        parsed.password,
+        parsed.name
+      );
+
+    // auto login après signup
+    const token =
+      generateAcessToken(
+        newUser._id.toString()
+      );
+
+    // cookie auth
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    return res.status(201).json({
+      message:
+        "Compte créé avec succès",
+
+      user: {
+        id: newUser._id,
+        email: newUser.email,
+        name: newUser.name,
+      },
+
+      hasCompletedOnboarding:
+        newUser.hasCompletedOnboarding,
+
+      onboardingStep:
+        newUser.onboardingStep,
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
 };
 export const getUserByEmail = async (req: Request, res: Response) => {
   const { email } = req.query;

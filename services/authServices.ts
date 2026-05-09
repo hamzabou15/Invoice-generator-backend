@@ -8,103 +8,69 @@ import Business, { CreateBusinessDTO } from "../models/Business";
 import mongoose from "mongoose";
 
 // logic metier pour l'inscription (pas de response ici, juste la logique)
-export const createUser = async (email: string, password: string, name?: string) => {
+export const createUser = async (
+  email: string,
+  password: string,
+  name?: string
+) => {
+  /* =========================
+     NORMALIZE EMAIL
+  ========================= */
 
-  const existUser = await User.findOne({
-    email: email
-  })
+  const normalizedEmail =
+    email.toLowerCase().trim();
 
-  if (existUser) throw new Error("L'utilisateur existe déjà");
-  const passwordHash = await bcrypt.hash(password, 10); // for hashing password
+  /* =========================
+     CHECK EXISTING USER
+  ========================= */
 
-  const verificationToken = crypto.randomBytes(32).toString("hex"); // creation token for email verification
+  const existUser =
+    await User.findOne({
+      email: normalizedEmail,
+    });
 
-  const newUser = await User.create({
-    email: email,
-    passwordHash: passwordHash,
-    name: name,
-    verificationToken: verificationToken,
-    verificationTokenExpires: new Date(Date.now() + 600000), // 1 heure
-  })
+  if (existUser) {
+    throw new Error(
+      "L'utilisateur existe déjà"
+    );
+  }
 
-  const verificationLink = `${process.env.BACKEND_URL}/api/auth/verify?token=${verificationToken}`;
+  /* =========================
+     HASH PASSWORD
+  ========================= */
 
-  await sendEmail(
-    email,
-    "Vérifiez votre adresse email - Facturuo",
-    `
-  <div style="font-family: Arial, sans-serif; background-color: #f4f6f8; padding: 40px 0;">
-    <table align="center" width="100%" style="max-width: 600px; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-      
-      <!-- Header -->
-      <tr>
-        <td style="background: #4F46E5; padding: 20px; text-align: center;">
-          <h1 style="color: #ffffff; margin: 0; font-size: 24px;">
-            Facturuo
-          </h1>
-        </td>
-      </tr>
+  const passwordHash =
+    await bcrypt.hash(password, 10);
 
-      <!-- Content -->
-      <tr>
-        <td style="padding: 30px; color: #333333;">
-          <h2 style="margin-top: 0;">Confirmez votre email</h2>
-          
-          <p>
-            Bonjour,<br><br>
-            Merci de vous être inscrit sur <strong>Facturuo</strong> 🎉
-          </p>
+  /* =========================
+     CREATE USER
+  ========================= */
 
-          <p>
-            Pour activer votre compte, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous :
-          </p>
+  const newUser =
+    await User.create({
+      email: normalizedEmail,
 
-          <!-- Button -->
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationLink}" 
-              style="
-                background: #10B981;
-                color: #ffffff;
-                padding: 14px 28px;
-                text-decoration: none;
-                border-radius: 6px;
-                font-weight: bold;
-                display: inline-block;
-              ">
-              Vérifier mon email
-            </a>
-          </div>
+      passwordHash,
 
-          <p style="font-size: 14px; color: #666;">
-            Si le bouton ne fonctionne pas, vous pouvez copier-coller ce lien dans votre navigateur :
-          </p>
+      name: name?.trim(),
 
-          <p style="word-break: break-all; font-size: 13px; color: #4F46E5;">
-            ${verificationLink}
-          </p>
+      isVerified: false,
 
-          <p style="font-size: 14px; color: #666;">
-            Si vous n'avez pas créé de compte, vous pouvez ignorer cet email.
-          </p>
-        </td>
-      </tr>
+      hasCompletedOnboarding:
+        false,
 
-      <!-- Footer -->
-      <tr>
-        <td style="background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #999;">
-          © ${new Date().getFullYear()} Facturuo. Tous droits réservés.
-        </td>
-      </tr>
+      onboardingStep:
+        "organization",
 
-    </table>
-  </div>
-  `
-  );
+      hasCreatedFirstQuote:
+        false,
+
+      lastLoginAt:
+        new Date(),
+    });
 
   return newUser;
-
-}
-
+};
 // logic metier pour la verification de l'email (pas de response ici, juste la logique)
 export const verifyUserEmail = async (token: string) => {
 
@@ -436,7 +402,7 @@ interface UpdateUserInformationsParams {
   email?: string
   name?: string
   numberPhone?: string
-  job?:string
+  job?: string
 }
 
 export const updateUserInformationsService =
@@ -461,7 +427,7 @@ export const updateUserInformationsService =
     if (numberPhone) {
       updateData.numberPhone = numberPhone
     }
-    if(job) {
+    if (job) {
       updateData.job = job
     }
 
