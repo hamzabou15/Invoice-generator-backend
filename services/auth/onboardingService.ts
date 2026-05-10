@@ -1,10 +1,10 @@
 // services/onboardingService.ts
 
 
-import Membership from "../models/MemberShip";
-import Organization from "../models/Organisation";
+import Membership from "../../models/MemberShip";
+import Organization from "../../models/organization/Organization";
 import User
-    from "../models/User";
+    from "../../models/User";
 
 interface CreateWorkspaceParams {
     userId: string;

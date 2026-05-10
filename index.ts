@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
 import authRoutes from "./routes/authRoutes";
+import userRoutes from "./routes/userRoutes";
+
 import onboardingRoutes from "./routes/onboardingRoutes";
 
 import { errorHandler } from "./middlewares/errorHandler";
@@ -27,7 +29,9 @@ connectDB();
 
 // routes
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 app.use("/api/onboarding", onboardingRoutes);
+
 
 
 // error handler

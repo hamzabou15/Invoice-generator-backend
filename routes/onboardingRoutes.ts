@@ -1,4 +1,4 @@
-import { selectWorkspaceController } from "../controllers/onboardingController";
+import { selectWorkspaceController } from "../controllers/auth/onboardingController";
 import express from 'express';
 import { authMiddleware } from "../middlewares/authMidlleware";
 import { asyncHandler } from "../middlewares/asyncHandler";

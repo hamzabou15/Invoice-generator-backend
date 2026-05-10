@@ -13,8 +13,9 @@ export const updateUserSchema = z.object({
 
     numberPhone: z
         .string()
-        .min(8, "Numéro invalide")
-        .optional(),
+        .trim()
+        .optional()
+        .or(z.literal("")),
     job: z.enum([
         "plombier",
         "électricien",

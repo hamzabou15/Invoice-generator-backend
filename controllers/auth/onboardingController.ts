@@ -1,8 +1,8 @@
 // controllers/onboardingController.ts
 
 import { Response } from "express";
-import { workspaceSchema } from "../validators/onboarding";
-import { createWorkspaceService } from "./onboardingService";
+import { createWorkspaceService } from "../../services/auth/onboardingService";
+import { workspaceSchema } from "../../validators/auth/onboardingSchema";
 
 
 
