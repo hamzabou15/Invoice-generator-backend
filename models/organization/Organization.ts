@@ -145,16 +145,6 @@ const organizationSchema =
         lowercase: true,
       },
 
-      country: {
-        type: String,
-        default: "FR",
-      },
-
-      currency: {
-        type: String,
-        default: "EUR",
-      },
-
       timezone: {
         type: String,
         default: "Europe/Paris",

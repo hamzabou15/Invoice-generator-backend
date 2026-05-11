@@ -6,6 +6,8 @@ import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 
 import onboardingRoutes from "./routes/onboardingRoutes";
+import organizationRoutes from "./routes/organizationRoutes";
+
 
 import { errorHandler } from "./middlewares/errorHandler";
 import cookieParser from "cookie-parser";
@@ -31,6 +33,8 @@ connectDB();
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/onboarding", onboardingRoutes);
+app.use("/api/organization", organizationRoutes);
+
 
 
 
