@@ -46,9 +46,7 @@ export const createWorkspaceService =
 
                 owner: user._id,
 
-                businessName:
-                    user.name ||
-                    "Mon entreprise",
+      
 
                 workspaceType,
 
