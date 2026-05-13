@@ -1,51 +1,79 @@
-import { NextResponse }
-from "next/server";
+// backend/controllers/organization/banking.controller.ts
 
-import { bankingSchema }
-from "@/validators/banking.validator";
+import type {
+    Request,
+    Response,
+    NextFunction,
+} from "express";
+import { getBankingByOrganization, upsertBanking } from "../../services/organizations/organizationBanking.service";
 
-import { saveBankingService }
-from "@/services/company/banking.service";
 
-export async function saveBankingController(
-  req: Request
+/* =========================================================
+   GET BANKING
+========================================================= */
+
+export async function getBankingController(
+    req: Request,
+    res: Response,
+    next: NextFunction
 ) {
 
-  try {
+    try {
 
-    const body =
-      await req.json();
+        const organizationId =
+            req.user.id as string;
 
-    const parsed =
-      bankingSchema.safeParse(body);
+        const banking =
+            await getBankingByOrganization(
+                organizationId
+            );
 
-    if (!parsed.success) {
+        return res.status(200).json({
 
-      return NextResponse.json({
-        error: "Invalid fields",
-        details:
-          parsed.error.flatten(),
-      }, {
-        status: 400,
-      });
+            success: true,
+
+            data: banking,
+        });
+
+    } catch (error) {
+
+        next(error);
     }
+}
 
-    await saveBankingService(
-      parsed.data
-    );
+/* =========================================================
+   UPDATE BANKING
+========================================================= */
 
-    return NextResponse.json({
-      success: true,
-    });
+export async function updateBankingController(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
 
-  } catch (error) {
+    try {
 
-    console.error(error);
+        const organizationId =
+            req.user.id;
 
-    return NextResponse.json({
-      error: "Server error",
-    }, {
-      status: 500,
-    });
-  }
+        const banking =
+            await upsertBanking(
+                organizationId,
+                req.body
+            );
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Coordonnées bancaires mises à jour.",
+
+            data: banking,
+        });
+
+    } catch (error) {
+
+        next(error);
+    }
 }

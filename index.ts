@@ -20,7 +20,7 @@ const app = express();
 
 app.use(cookieParser());
 
-// 🔥 CORS
+//  CORS
 app.use(
   cors({
     origin: "http://10.32.13.128:3000",
