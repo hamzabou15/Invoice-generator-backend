@@ -45,6 +45,7 @@ interface UpdateOrganizationInput {
         iban?: string;
 
         bic?: string;
+        logo?: string;
     };
 }
 

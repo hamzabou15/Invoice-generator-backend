@@ -9,7 +9,8 @@ import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import onboardingRoutes from "./routes/onboardingRoutes";
 import organizationRoutes from "./routes/organizationRoutes";
-
+import uploadRoutes
+  from "./routes/upload.routes";
 import { errorHandler } from "./middlewares/errorHandler";
 
 import cookieParser from "cookie-parser";
@@ -37,6 +38,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/onboarding", onboardingRoutes);
 app.use("/api/organization", organizationRoutes);
+
+app.use(
+  "/api/upload",
+  uploadRoutes
+);
 
 // ERROR HANDLER
 app.use(errorHandler);

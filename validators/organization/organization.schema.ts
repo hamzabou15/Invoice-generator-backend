@@ -92,4 +92,5 @@ export const updateOrganizationSchema =
             z.string()
                 .max(10)
                 .optional(),
+        logo: z.string().optional(),
     });
